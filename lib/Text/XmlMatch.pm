@@ -1,5 +1,6 @@
 package Text::XmlMatch;
 use strict;
+use warnings;
 
 #XML package designed to provide easy, configurable groups via XML
 #configuration file
@@ -15,12 +16,14 @@ use strict;
 #
 # 02/07/07 - JAL - Hotfix 3 -> Corrected bug where config file with a
 #                  single pattern caused the module to fail.
+#
+# 02/12/07 - JAL - Hotfix 4 -> Minor POD cleanup, added 'use warnings'
 
 BEGIN {
         use XML::Simple;
         #use Data::Dumper; #Here for debug/development
 	use vars qw ($VERSION);
-  	$VERSION = 1.0003;
+  	$VERSION = 1.0004;
 }
 
 
@@ -36,7 +39,7 @@ sub findMatch {
   my $config = shift; #this holds the XML object
   our $name = shift; #this holds the string to be matched against, typically a FQDN
 
-  my $r_matchResults = {}; #this is an itermediate hash, used prior to returning final hash, key->'pattern name'
+  my $r_matchResults = {}; #this is an intermediate hash, used prior to returning final hash, key->'pattern name'
 
   #Now crawl through the hash looking for matches
   foreach my $group (keys %{$config->{pattern}}) { #walk through each pattern name
@@ -206,7 +209,7 @@ Text::XmlMatch - Pattern-matching and grouping via XML configuration file
  my $matcher = Text::XmlMatch->new('ConfigurationFile.xml');
 
  #Find group, results returned as hash reference
- my $results = $matcher->findMatch('09460-3640-2-s-x.csc.na.mgmt.medcity.net');
+ my $results = $matcher->findMatch('09460-3640-2-s-x.csc.na.testdomain.com');
  foreach (keys %$results) {
    print "Group Name\t--   Group Type \n";
    print "$_\t--   $$results{$_} \n";
@@ -384,8 +387,8 @@ This module requires C<XML::Simple 2.14>.
 
 =head1 SEE ALSO
 
-The I<extras> directory contains example XML configuration files that
-were used to establish groups within a production environment.
+The I<extras> directory contains sample XML configuration files that
+are also used to provide the configurations for the test scripts.
 
 =head1 AUTHOR
 
@@ -393,14 +396,9 @@ Jason A. Lee E<lt>leeja@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
- Text::XmlMatch version 1.03
+ Text::XmlMatch version 1.0004
 
  Copyright 2007, Jason Lee
    All rights reserved.
-
-=pod SCRIPT CATEGORIES
-
-Search
-UNIX/System_administration
 
 =cut
