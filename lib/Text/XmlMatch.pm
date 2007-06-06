@@ -18,12 +18,15 @@ use warnings;
 #                  single pattern caused the module to fail.
 #
 # 02/12/07 - JAL - Hotfix 4 -> Minor POD cleanup, added 'use warnings'
+#
+# 06/06/07 - JAL - Hotfix 5 -> Fixed bug in listGroups() failing when
+#                  config file contains only a single pattern
 
 BEGIN {
         use XML::Simple;
-        #use Data::Dumper; #Here for debug/development
+        use Data::Dumper; #Here for debug/development
 	use vars qw ($VERSION);
-  	$VERSION = 1.0004;
+  	$VERSION = 1.0005;
 }
 
 
@@ -189,10 +192,43 @@ sub listGroups {
   my $r_groupList = []; #reference to anonymous array
 
   #Now crawl through the hash and iterate over each group name
+  #print "DEBUG: Original " . Dumper ($config) . "\n";
   foreach my $group (keys %{$config->{pattern}}) { #walk through each pattern name
+    ############
+    # Hotfix 5 #
+    #################################################################
+    #The block below handles a special case where the user provides a
+    #configuration that contains a single pattern.  In such cases,
+    #XML::Simple creates a hash structure that is completely different
+    #than the one that is created when two or more patterns are
+    #specified.  This block creates a new hash structure that matches
+    #the expected format.  To reliably catch this condition, 'tag' and
+    #'inclusion' are now reserved keywords.
+    #################################################################
+
+    #print "DEBUG: Processing pattern $group\n";
+    next if ($group =~ /^(inclusion|tag)$/);
+    #print "DEBUG: Dump " . Dumper($config) . "\n";
+    if (defined $config->{pattern}->{inclusion}) { #if this key is defined then hash is collapsed
+      #print "DEBUG: Hash not found, must be single pattern!\n";
+      #print "Dumper Single: " . Dumper($config->{pattern}->{$group}) . "\n";
+      #rebuild hash structure so that it looks like what's expected
+      my $singlePatternName = $group;
+      my $newHashStructure = {};
+      foreach my $single (keys %{$config->{pattern}->{$group}}) {
+        next if ($single =~ /^(name)$/); # we're rebuilding hash to standard form, don't need this key
+        $newHashStructure->{pattern}->{$singlePatternName}->{$single} = $config->{pattern}->{$group}->{$single};
+      }
+      #bless $newHashStructure, $config;
+      #print "DEBUG: new hash structure: " . Dumper($newHashStructure) . "\n";
+      $config->{pattern} = $newHashStructure->{pattern}; #copy newly structured hash over the original
+      #print "DEBUG: new config: " . Dumper($config) . "\n";
+      $group = $singlePatternName;
+    }
     push @$r_groupList, $group;  #store each group name in the array
   }
-  return $r_groupList;  #pass the reference to the anonymous array back to the caller 
+  return wantarray ? @$r_groupList : $r_groupList;
+  #return $r_groupList;  #pass the reference to the anonymous array back to the caller 
 }
 
 1;
@@ -287,8 +323,10 @@ string.  Multiple <exclusion> tags per pattern are allowed.
 
 B<listGroups()>
 
-This simply returns a reference to an array containing a list of all
-the pattern names that were derived from the XML configuration file.
+This simply returns a an array or reference to an array containing a
+list of all the pattern names that were derived from the XML
+configuration file.  The caller's context determines whether an array
+or reference is returned.
 
 =head1 XML Configuration file
 
@@ -320,7 +358,8 @@ for this pattern will return this name as described when findMatch() is
 called.
 
 Note that this opening tag must include at least one inclusion tag (see
-below).
+below).  The following keywords are reserved and must not be used as a
+pattern name: 'inclusion', 'tag', 'name'.
 
 =item inclusion tag
 
