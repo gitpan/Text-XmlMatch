@@ -1,5 +1,6 @@
 Changes
 extras/config.xml
+extras/ConfigurationFile.xml
 extras/EHConfig.xml
 extras/facilityConfig.xml
 extras/marketConfig.xml
@@ -18,4 +19,5 @@ t/007_listGroups.t
 t/008_marketGroups.t
 t/009_facilityGroups.t
 t/010_singlePatternFailure.t
+t/011_singlePatternExtended.t
 META.yml                                 Module meta-data (added by MakeMaker)

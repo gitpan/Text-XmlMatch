@@ -13,3 +13,6 @@ Revision history for Text::XmlMatch
 		   listGroups() to misbehave.  Also, the following
 		   keywords are now reserved and must not be used as
 		   pattern names:  'name', 'tag', and 'inclusion'.
+
+0.0006    06/06/07 listGroups() bug was not truly stomped.  Should be
+                   dead for good now.

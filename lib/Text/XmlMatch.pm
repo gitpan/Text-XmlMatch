@@ -21,12 +21,18 @@ use warnings;
 #
 # 06/06/07 - JAL - Hotfix 5 -> Fixed bug in listGroups() failing when
 #                  config file contains only a single pattern
+#
+# 06/06/07 - JAL - Hotfix 6 -> calling findMatch() prior to
+#                  listGroups() was concealing another bug in
+#                  listGroups() when only a single pattern name is
+#                  specified in a config file.
+
 
 BEGIN {
         use XML::Simple;
         use Data::Dumper; #Here for debug/development
 	use vars qw ($VERSION);
-  	$VERSION = 1.0005;
+  	$VERSION = 1.0006;
 }
 
 
@@ -194,38 +200,48 @@ sub listGroups {
   #Now crawl through the hash and iterate over each group name
   #print "DEBUG: Original " . Dumper ($config) . "\n";
   foreach my $group (keys %{$config->{pattern}}) { #walk through each pattern name
+    next if ($group =~ /^(inclusion|tag)$/);
     ############
-    # Hotfix 5 #
+    # Hotfix 6 #
     #################################################################
     #The block below handles a special case where the user provides a
     #configuration that contains a single pattern.  In such cases,
     #XML::Simple creates a hash structure that is completely different
     #than the one that is created when two or more patterns are
     #specified.  This block creates a new hash structure that matches
-    #the expected format.  To reliably catch this condition, 'tag' and
-    #'inclusion' are now reserved keywords.
+    #the expected format.  Note that although we are currently in a
+    #foreach loop, the loop gets killed for this special case as there
+    #are no keys to step through.
     #################################################################
 
     #print "DEBUG: Processing pattern $group\n";
-    next if ($group =~ /^(inclusion|tag)$/);
-    #print "DEBUG: Dump " . Dumper($config) . "\n";
-    if (defined $config->{pattern}->{inclusion}) { #if this key is defined then hash is collapsed
+    if (defined $config->{pattern}->{name}) { #if this key is defined then hash is collapsed
       #print "DEBUG: Hash not found, must be single pattern!\n";
       #print "Dumper Single: " . Dumper($config->{pattern}->{$group}) . "\n";
       #rebuild hash structure so that it looks like what's expected
-      my $singlePatternName = $group;
+      my $singlePatternName = $config->{pattern}->{name};
       my $newHashStructure = {};
-      foreach my $single (keys %{$config->{pattern}->{$group}}) {
-        next if ($single =~ /^(name)$/); # we're rebuilding hash to standard form, don't need this key
-        $newHashStructure->{pattern}->{$singlePatternName}->{$single} = $config->{pattern}->{$group}->{$single};
+      foreach my $single (keys %{$config->{pattern}}) {
+        next if ($single eq 'name'); # we're rebuilding hash to standard form, don't need this key
+        $newHashStructure->{pattern}->{$singlePatternName}->{$single} = $config->{pattern}->{$single};
       }
-      #bless $newHashStructure, $config;
       #print "DEBUG: new hash structure: " . Dumper($newHashStructure) . "\n";
       $config->{pattern} = $newHashStructure->{pattern}; #copy newly structured hash over the original
       #print "DEBUG: new config: " . Dumper($config) . "\n";
       $group = $singlePatternName;
     }
+    #End of Hotfix 6 block#########################################
+
     push @$r_groupList, $group;  #store each group name in the array
+
+    ##########
+    #Hotfix 6#
+    #################################################################
+    #this line stops the looping through keys, as there are no keys to
+    #step through in the case of a single pattern XML config file.
+
+    last if (defined $config->{pattern}->{name}); #If case of single pattern, don't try to step through more
+
   }
   return wantarray ? @$r_groupList : $r_groupList;
   #return $r_groupList;  #pass the reference to the anonymous array back to the caller 
@@ -435,7 +451,7 @@ Jason A. Lee E<lt>leeja@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
- Text::XmlMatch version 1.0004
+ Text::XmlMatch version 1.0006
 
  Copyright 2007, Jason Lee
    All rights reserved.
